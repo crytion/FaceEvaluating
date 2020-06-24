@@ -19,7 +19,7 @@ router.post('/file/uploading', function(req, res, next)
     //设置文件存储路劲
     form.uploadDir = './public/files/';
     //设置文件大小限制
-    form.maxFilesSize = 2 * 1024 * 1024;
+    form.maxFilesSize = 1 * 1024 * 1024;
     //上传后处理
     form.parse(req, function (err, fields, files)
     {
@@ -78,7 +78,7 @@ var appSec = "K1zHwlcl1RalyoLOH3vWLsouLDjPcl69";
 var postData = {
     "api_key": appKey,
     "api_secret": appSec,
-    "return_attributes": "gender,age,smiling,facequality,beauty,skinstatus,emotion,skinstatus"
+    "return_attributes": "gender,age,smiling,facequality,beauty,skinstatus,emotion,skinstatus,blur"
 };
 
 let PostFaceData = function(base64str, res, dstPath)
@@ -94,15 +94,19 @@ let PostFaceData = function(base64str, res, dstPath)
         {
             return console.error('upload failed:', err);
         }
-        console.log('Upload successful!', typeof body);
+        //console.log('Upload successful!', typeof body);
 
         let strResult = FaceResult(JSON.parse(body));
+        try
+        {
+            res.writeHead(200, {'content-type': 'text/plain;charset=utf-8'});
+            res.write(strResult);
+            res.end();
 
-        res.writeHead(200, {'content-type': 'text/plain;charset=utf-8'});
-        res.write(strResult);
-        res.end();
-
-        return;
+        } catch (e)
+        {
+            console.error("LKX== 解析失败== " + dstPath);
+        }
     });
 };
 
@@ -128,6 +132,9 @@ let FaceResult = function(body)
     {
         let oneFace = faceArr[i];
         let attributes = oneFace.attributes;
+
+        //console.log("attributes=== " + JSON.stringify(attributes));
+
         let bMan = false;
         if (attributes.gender.value == "Female")
         {
@@ -137,6 +144,8 @@ let FaceResult = function(body)
         {
             bMan = true;
         }
+
+        let blur = attributes.blur.blurness.value >= attributes.blur.blurness.threshold;
 
         let nAge = attributes.age.value;
         let bSmile = attributes.smile.value >= attributes.smile.threshold;
@@ -166,7 +175,7 @@ let FaceResult = function(body)
 
 
 
-        return "这个人是" + (bMan ? "男性" : "女性") +""+ (bSmile ? ", 正在笑" : "") +", 年龄是" + nAge + "岁左右," +
+        return ""+(blur ? "这张图不怎么清楚" : "图片清晰度正常..") + "这个人是" + (bMan ? "男性" : "女性") +""+ (bSmile ? ", 正在笑" : "") +", 年龄是" + nAge + "岁左右," +
             " 颜值为" + nBeauty.toFixed(1)+' '+strBeauty+", 表情是"+strEmotion
             +" \n"+strSkinstatus;
     }
